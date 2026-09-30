@@ -3,44 +3,111 @@ import numpy as np
 
 
 def segmentar_vegetacao(imagem):
-    '''
-    Identifica as regiões correspondentes à vegetação.
-    Recebe:
-        imagem processada.
-    Retorna:
-        máscara de vegetação:
-        branco (255) = vegetação
-        preto (0) = não vegetação
-    '''
+    """
+    Identifica regiões mais escuras da imagem,
+    tentando separar áreas arbóreas do restante.
+
+    Branco (255) = possível área de árvores
+    Preto (0) = restante da imagem
+    """
+
     if imagem is None:
-        raise ValueError("A imagem recebida para segmentação é inválida.")
+        raise ValueError(
+            "A imagem recebida para segmentação é inválida."
+        )
 
-    # BGR -> HSV: facilita separar vegetação por tonalidade,
-    # saturação e brilho.
-    hsv = cv2.cvtColor(imagem, cv2.COLOR_BGR2HSV)
+    # --------------------------------------------------
+    # 1. Converte a imagem de BGR para HSV
+    # --------------------------------------------------
 
-    # Faixa inicial para tons de verde.
-    # Estes valores serão ajustados usando as imagens reais do projeto.
-    limite_inferior = np.array([25, 35, 30], dtype=np.uint8)
-    limite_superior = np.array([100, 255, 255], dtype=np.uint8)
+    hsv = cv2.cvtColor(
+        imagem,
+        cv2.COLOR_BGR2HSV
+    )
 
-    # Cria a máscara binária.
-    mascara = cv2.inRange(hsv, limite_inferior, limite_superior)
+    # Separa os três canais:
+    #
+    # H = tonalidade
+    # S = saturação
+    # V = brilho
+    h, s, v = cv2.split(hsv)
 
-    # Remove pequenos ruídos.
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
+    # --------------------------------------------------
+    # 2. Segmentação pelo brilho
+    # --------------------------------------------------
+
+    # O Otsu tenta encontrar automaticamente
+    # um ponto de separação entre regiões
+    # claras e escuras.
+    #
+    # THRESH_BINARY_INV é utilizado porque:
+    #
+    # áreas escuras  -> branco
+    # áreas claras   -> preto
+
+    _, mascara_brilho = cv2.threshold(
+        v,
+        0,
+        255,
+        cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    )
+
+
+    # --------------------------------------------------
+    # 3. Cria uma máscara ampla para tons verdes
+    # --------------------------------------------------
+
+    limite_verde_inferior = np.array(
+        [25, 30, 0],
+        dtype=np.uint8
+    )
+
+    limite_verde_superior = np.array(
+        [100, 255, 255],
+        dtype=np.uint8
+    )
+
+    mascara_verde = cv2.inRange(
+        hsv,
+        limite_verde_inferior,
+        limite_verde_superior
+    )
+
+
+    # --------------------------------------------------
+    # 4. Junta as duas condições
+    # --------------------------------------------------
+
+    # O pixel precisa ser:
+    #
+    # - verde
+    # E
+    # - relativamente escuro
+    #
+    # para ser considerado área arbórea.
+
+    mascara = cv2.bitwise_and(
+        mascara_brilho,
+        mascara_verde
+    )
+
+
+    # --------------------------------------------------
+    # 5. Remove pequenos ruídos
+    # --------------------------------------------------
+
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE,
+        (3, 3)
+    )
+
     mascara = cv2.morphologyEx(
-        mascara, cv2.MORPH_OPEN, kernel, iterations=1
+        mascara,
+        cv2.MORPH_OPEN,
+        kernel,
+        iterations=1
     )
 
-    # Preenche pequenas falhas e une partes próximas.
-    mascara = cv2.morphologyEx(
-        mascara, cv2.MORPH_CLOSE, kernel, iterations=2
-    )
-
-    # Garante uma máscara realmente binária: 0 ou 255.
-    _, mascara = cv2.threshold(
-        mascara, 127, 255, cv2.THRESH_BINARY
-    )
 
     return mascara
