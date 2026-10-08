@@ -1,6 +1,8 @@
 import cv2
 
 from Filtro import filtro_gaussiano
+from Segmentacao import segmentar_vegetacao
+from Analise import calcular_cobertura_vegetal
 
 
 def carregar_imagem(caminho):
@@ -16,8 +18,6 @@ def carregar_imagem(caminho):
 
     imagem = cv2.imread(caminho)
 
-    # Caso o arquivo não exista,
-    # esteja corrompido ou não possa ser aberto.
     if imagem is None:
         raise FileNotFoundError(
             "Não foi possível carregar a imagem."
@@ -28,29 +28,28 @@ def carregar_imagem(caminho):
 
 def processar_imagem(caminho):
     """
-    Controla as etapas de processamento da imagem.
+    Controla todas as etapas de processamento da imagem.
 
-    Atualmente:
+    Etapas:
         1 - carrega a imagem
         2 - aplica filtro Gaussiano
-
-    Futuramente:
-        3 - segmenta a vegetação
-        4 - analisa os resultados
+        3 - faz a segmentação
+        4 - calcula a cobertura vegetal
+        5 - organiza os resultados
     """
 
-    # --------------------------------
+    # --------------------------------------------------
     # 1. CARREGAMENTO
-    # --------------------------------
+    # --------------------------------------------------
 
     imagem_original = carregar_imagem(
         caminho
     )
 
 
-    # --------------------------------
-    # 2. FILTRAGEM
-    # --------------------------------
+    # --------------------------------------------------
+    # 2. FILTRO GAUSSIANO
+    # --------------------------------------------------
 
     imagem_filtrada = filtro_gaussiano(
         imagem_original,
@@ -59,32 +58,34 @@ def processar_imagem(caminho):
     )
 
 
-    # --------------------------------
+    # --------------------------------------------------
     # 3. SEGMENTAÇÃO
-    # --------------------------------
+    # --------------------------------------------------
 
-    # Ainda será implementado.
-    #
-    # mascara = segmentar_vegetacao(
-    #     imagem_filtrada
-    # )
+    mascara = segmentar_vegetacao(
+        imagem_filtrada
+    )
 
 
-    # --------------------------------
+    # --------------------------------------------------
     # 4. ANÁLISE
-    # --------------------------------
+    # --------------------------------------------------
 
-    # Ainda será implementado.
-    #
-    # cobertura = calcular_cobertura_vegetal(
-    #     mascara
-    # )
+    cobertura = calcular_cobertura_vegetal(
+        mascara
+    )
 
 
-    # Organizamos os resultados.
+    # --------------------------------------------------
+    # 5. RESULTADOS
+    # --------------------------------------------------
+
     resultado = {
         "imagem_original": imagem_original,
-        "imagem_filtrada": imagem_filtrada
+        "imagem_filtrada": imagem_filtrada,
+        "mascara": mascara,
+        "cobertura_vegetal": cobertura
     }
+
 
     return resultado

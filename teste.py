@@ -5,7 +5,7 @@ from pathlib import Path
 from tkinter import filedialog
 
 from Processamento import processar_imagem
-from Segmentação import segmentar_vegetacao
+from Segmentacao import segmentar_vegetacao
 from Analise import calcular_cobertura_vegetal
 
 
