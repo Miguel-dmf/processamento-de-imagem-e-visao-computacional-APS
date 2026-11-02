@@ -2,6 +2,7 @@ import cv2
 import customtkinter as ctk
 from tkinter import filedialog
 from PIL import Image
+from Processamento import processar_imagem
 
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -113,39 +114,117 @@ class App(ctk.CTk):
 
     def acao_processar(self):
         caminho = self.caminho_entrada.get()
+
         if not caminho:
-            self.lbl_status.configure(text="Erro: Selecione uma imagem primeiro!", text_color="#EF4444")
+            self.lbl_status.configure(
+                text="Erro: Selecione uma imagem primeiro!",
+                text_color="#EF4444"
+            )
             return
 
-        self.lbl_status.configure(text="Processando imagem, aguarde...", text_color="#FBBF24")
-        self.update() 
+        self.lbl_status.configure(
+            text="Processando imagem, aguarde...",
+            text_color="#FBBF24"
+        )
+        self.update()
 
-        """
-        --- TODO JHU: seu trabaio começa aqui (pode apagar isso quando finalizar o trampo) ---
-        1. chame a sua função 'processar_imagem' passando a variável 'caminho' e guarde o dicionário de resultados.
-        2. use o cv2.split para pegar h, s, v.
-        3. passe as imagens reais para a função self.converter_cv2_para_ctk().
-        4. aplique as imagens convertidas nos labels usando .configure(image=...).
-        5. pegue o valor real da cobertura do seu dicionário para a lógica de cores abaixo.
+        try:
+            # 1. Executa o processamento no back-end
+            resultados = processar_imagem(caminho)
 
-        SE PRECISAR DE AJUDA, pode me chamar, o migs ou giu, entraremos disc. xoxo
-        """
+            # 2. Recupera as imagens e a porcentagem calculada
+            imagem_original = resultados["imagem_original"]
+            imagem_filtrada = resultados["imagem_filtrada"]
+            mascara = resultados["mascara"]
+            cobertura = resultados["cobertura_vegetal"]
 
-        # ATENÇÃO JHU: apaga essa parte quando for ligar o back-end
-        cobertura = 82.5 
-        
-        # lógica das coresd para % de verde (arvores) (pode manter, mas se julgar mudar as porcentagens, fique a vontade)
-        if cobertura >= 75.0:
-            cor_destaque = "#10B981"
-        elif cobertura < 50.0:
-            cor_destaque = "#EF4444"
-        else:
-            cor_destaque = "#F59E0B"
-        
-        self.lbl_cobertura.configure(text=f"Cobertura Vegetal:\n{cobertura:.2f}%", text_color=cor_destaque)
-        
-        self.tabview.set("Resultados Principais")
-        self.lbl_status.configure(text="Processamento concluído com sucesso!", text_color="#10B981")
+            # 3. Converte a imagem filtrada para HSV
+            imagem_hsv = cv2.cvtColor(
+                imagem_filtrada,
+                cv2.COLOR_BGR2HSV
+            )
+
+            # 4. Separa os canais H, S e V
+            h, s, v = cv2.split(imagem_hsv)
+
+            # 5. Converte as imagens para exibição na interface
+            img_original_ctk = self.converter_cv2_para_ctk(
+                imagem_original
+            )
+            img_filtrada_ctk = self.converter_cv2_para_ctk(
+                imagem_filtrada
+            )
+            img_mascara_ctk = self.converter_cv2_para_ctk(
+                mascara,
+                is_gray=True
+            )
+
+            img_h_ctk = self.converter_cv2_para_ctk(
+                h,
+                is_gray=True
+            )
+            img_s_ctk = self.converter_cv2_para_ctk(
+                s,
+                is_gray=True
+            )
+            img_v_ctk = self.converter_cv2_para_ctk(
+                v,
+                is_gray=True
+            )
+
+            # 6. Exibe as imagens nos respectivos espaços
+            self.lbl_img_orig.configure(
+                image=img_original_ctk,
+                text=""
+            )
+            self.lbl_img_filt.configure(
+                image=img_filtrada_ctk,
+                text=""
+            )
+            self.lbl_img_masc.configure(
+                image=img_mascara_ctk,
+                text=""
+            )
+
+            self.lbl_img_h.configure(image=img_h_ctk, text="")
+            self.lbl_img_s.configure(image=img_s_ctk, text="")
+            self.lbl_img_v.configure(image=img_v_ctk, text="")
+
+            # 7. Mantém referências às imagens na memória
+            self.img_original_ctk = img_original_ctk
+            self.img_filtrada_ctk = img_filtrada_ctk
+            self.img_mascara_ctk = img_mascara_ctk
+            self.img_h_ctk = img_h_ctk
+            self.img_s_ctk = img_s_ctk
+            self.img_v_ctk = img_v_ctk
+
+            # 8. Define a cor conforme a cobertura calculada
+            if cobertura >= 75.0:
+                cor_destaque = "#10B981"
+            elif cobertura < 50.0:
+                cor_destaque = "#EF4444"
+            else:
+                cor_destaque = "#F59E0B"
+
+            # 9. Atualiza a porcentagem na interface
+            self.lbl_cobertura.configure(
+                text=f"Cobertura Vegetal:\n{cobertura:.2f}%",
+                text_color=cor_destaque
+            )
+
+            # 10. Finaliza a operação
+            self.tabview.set("Resultados Principais")
+            self.lbl_status.configure(
+                text="Processamento concluído com sucesso!",
+                text_color="#10B981"
+            )
+
+        except Exception as erro:
+            self.lbl_status.configure(
+                text=f"Erro ao processar a imagem: {erro}",
+                text_color="#EF4444"
+            )
+            print("Erro detalhado:", erro)
 
 if __name__ == "__main__":
     app = App()
