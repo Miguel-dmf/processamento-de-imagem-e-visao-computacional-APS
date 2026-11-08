@@ -225,7 +225,3 @@ class App(ctk.CTk):
                 text_color="#EF4444"
             )
             print("Erro detalhado:", erro)
-
-if __name__ == "__main__":
-    app = App()
-    app.mainloop()
